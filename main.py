@@ -173,7 +173,7 @@ def start_server(ip):
             cl.close()
             print('connection closed:', e)
 
-# Main logic
+# TODO: Add the SSID and Password of your own Wifi here!
 if not setup_wifi('SSID', 'PASSWORD'):
     ip = setup_access_point(AP_SSID, AP_PASSWORD)
 else:
