@@ -40,166 +40,42 @@
 </head>
 <body>
     <div id="controls">
-        <input id="ip" type="text" placeholder="192.168.178.XXX">
-        <button onclick="changeMode('draw')">Draw</button>
-        <button onclick="changeMode('upload')">Upload Image</button>
-        <button onclick="changeMode('share')">Share Screen</button>
-        <input type="file" id="upload" accept="image/*" onchange="handleImage(event)" style="display:none;">
+        <input id="ip" type="text" placeholder="192.168.178.___">
+        <details>
+            <summary>Draw, Upload and Share</summary>
+            <button onclick="changeMode('draw')">Draw</button>
+            <button onclick="changeMode('upload')">Upload Image</button>
+            <button onclick="changeMode('share')">Share Screen</button>
+            <input type="file" id="upload" accept="image/*" onchange="handleImage(event)" style="display:none;">
+        </details>
+
+        <details>
+            <summary>Clocks</summary>
+            <button onclick="setClockType('digital')">Digital</button>
+            <button onclick="setClockType('abstract')">Abstrakt</button>
+            <button onclick="setClockType('binary')">Binär</button>
+            <button onclick="setClockType('bar')">Balken</button>
+            <button onclick="setClockType('segment')">Segment</button>
+        </details>
+
+        <details>
+            <summary>Colors</summary>
+            <input type="color" id="color" value="#fff">
+        </details>
+
+        <details>
+            <summary>Tools</summary>
+            <button onclick="setTool('pen')">Pen</button>
+            <button onclick="setTool('eraser')">Eraser</button>
+            <button onclick="action('invert')">Invert</button>
+            <button onclick="action('clear')">Clear</button>
+            <button onclick="action('save')">Save</button>
+        </details>
     </div>
     <div id="canvasContainer">
         <video autoplay></video>
-        <canvas id="c" width="64" height="64" style="transform: scale(5);"></canvas>
+        <canvas id="c" width="64" height="64" style="transform: scale(5); background-color: black;"></canvas>
     </div>
-
-    <script>
-        let ctx, canvas, video, ip;
-        let drawing = false;
-        let currentMode = 'draw';
-        let debounceTimer;
-
-        function getCanvasScale() {
-            const style = window.getComputedStyle(canvas);
-            const scaleX = parseFloat(style.transform.split(',')[0].replace('matrix(', '') || 1);
-            const scaleY = parseFloat(style.transform.split(',')[3]) || 1;
-            return { scaleX, scaleY };
-        }
-
-        function convertCanvas16Bit(ctx, xres, yres) {
-            let imgData = ctx.getImageData(0, 0, xres, yres);
-            let pixels = imgData.data;
-            let buff = new Uint8Array(xres * yres * 2);
-            for (let y = 0; y < yres; y++) {
-                for (let x = 0; x < xres; x++) {
-                    let r = pixels[(x + y * xres) * 4 + 0] >> 3;
-                    let g = pixels[(x + y * xres) * 4 + 1] >> 2;
-                    let b = pixels[(x + y * xres) * 4 + 2] >> 3;
-                    let rgb = r | (g << 5) | (b << 11);
-                    buff[(y * xres + x) * 2 + 0] = rgb & 255;
-                    buff[(y * xres + x) * 2 + 1] = rgb >> 8;
-                }
-            }
-
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                let req = new XMLHttpRequest();
-                req.open("POST", "http://" + ip, true);
-                req.setRequestHeader("Accept-Language", "");
-                req.setRequestHeader("Accept", "");
-                req.send(buff);
-            }, 5);
-        }
-
-        async function videoCB() {
-            ctx.drawImage(video, 0, 0, 64, 64);
-            convertCanvas16Bit(ctx, 64, 64);
-            video.requestVideoFrameCallback(videoCB);
-        }
-
-        async function startCapture() {
-            ip = document.querySelector("#ip").value;
-            localStorage.setItem('ip', ip);
-            canvas = document.querySelector('#c');
-            ctx = canvas.getContext('2d');
-            video = document.querySelector('video');
-
-            try {
-                video.srcObject = await navigator.mediaDevices.getDisplayMedia({
-                    video: { cursor: "always" },
-                    audio: false
-                });
-                video.onloadedmetadata = () => {
-                    video.play();
-                    video.requestVideoFrameCallback(videoCB);
-                };
-            } catch (error) {
-                console.error('Error accessing display media: ', error);
-            }
-        }
-
-        function draw(e) {
-            if (!drawing) return;
-
-            const { scaleX, scaleY } = getCanvasScale();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / scaleX;
-            const y = (e.clientY - rect.top) / scaleY;
-
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = 'white';
-
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
-
-        function startPosition(e) {
-            drawing = true;
-            draw(e);
-        }
-
-        function endPosition() {
-            if (drawing) {
-                drawing = false;
-                ctx.beginPath();
-                convertCanvas16Bit(ctx, 64, 64);
-            }
-        }
-
-        function handleImage(e) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    canvas.width = 64;
-                    canvas.height = 64;
-                    ctx.drawImage(img, 0, 0, 64, 64);
-                    convertCanvas16Bit(ctx, 64, 64);
-                }
-                img.src = event.target.result;
-            }
-            reader.readAsDataURL(e.target.files[0]);
-        }
-
-        function changeMode(mode) {
-            if (currentMode === 'share') {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
-
-            currentMode = mode;
-            
-            if (mode === 'draw') {
-                canvas.style.pointerEvents = 'auto';
-                video.style.display = 'none';
-                canvas.width = 64;
-                canvas.height = 64;
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            } else if (mode === 'upload') {
-                canvas.style.pointerEvents = 'none';
-                video.style.display = 'none';
-                document.getElementById('upload').click();
-            } else if (mode === 'share') {
-                canvas.style.pointerEvents = 'none';
-                video.style.display = 'none';
-                startCapture();
-            }
-        }
-
-        window.onload = function() {
-            ip = localStorage.getItem('ip');
-            if (ip) {
-                document.querySelector("#ip").value = ip;
-            }
-            canvas = document.querySelector('#c');
-            ctx = canvas.getContext('2d');
-            video = document.querySelector('video');
-
-            canvas.addEventListener('mousedown', startPosition);
-            canvas.addEventListener('mouseup', endPosition);
-            canvas.addEventListener('mousemove', draw);
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
