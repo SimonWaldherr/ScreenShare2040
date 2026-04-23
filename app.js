@@ -276,9 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const onEnd = (e) => {
         if (currentMode !== 'draw') return;
         e.preventDefault();
-        const { x, y } = e.changedTouches
-            ? canvasXY({ clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY })
-            : canvasXY(e);
+        const { x, y } = canvasXY(e.changedTouches ? { touches: e.changedTouches } : e);
 
         if (tool === 'line' && lineStart) {
             saveState();
@@ -498,8 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fill();
     };
 
-    const drawCircleMarker = (value, dist, size) => {
-        const a = (value / 30 * Math.PI) - Math.PI / 2;
+    const drawCircleMarker = (value, max, dist, size) => {
+        const a = (value / max * Math.PI * 2) - Math.PI / 2;
         ctx.beginPath();
         ctx.arc(32 + dist * Math.cos(a), 32 + dist * Math.sin(a), size, 0, Math.PI * 2);
         ctx.fillStyle = '#fff';
@@ -550,9 +548,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.textBaseline  = 'middle';
             ctx.fillText(t, 32, 32);
         } else if (clockType === 'abstract') {
-            drawCircleMarker(hour % 12,  16, 3);
-            drawCircleMarker(minute,     22, 2);
-            drawCircleMarker(second,     28, 1.5);
+            drawCircleMarker(hour % 12, 12, 16, 3);
+            drawCircleMarker(minute,    60, 22, 2);
+            drawCircleMarker(second,    60, 28, 1.5);
         } else if (clockType === 'binary') {
             drawBinary(hour,   4);
             drawBinary(minute, 24);

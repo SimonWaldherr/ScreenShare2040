@@ -100,7 +100,7 @@ def draw_char(x, y, char, r, g, b):
         hex_string = char_dict[char]
         for row in range(8):
             hex_value = hex_string[row * 2:row * 2 + 2]
-            bin_value = "{:08b}".format(int(hex_value, 16))
+            bin_value = f"{int(hex_value, 16):08b}"
             for col in range(8):
                 if bin_value[col] == '1':
                     draw_pixel(x + col, y + row, r, g, b)
