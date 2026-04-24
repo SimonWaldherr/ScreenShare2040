@@ -2,80 +2,337 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Screen Share & Drawing App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ScreenShare2040 v2</title>
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #12121f;
+            color: #d0d0e8;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Header ────────────────────────────────────────── */
+        header {
+            background: #1a1a2e;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #2a2a4a;
+            flex-shrink: 0;
+        }
+        header h1 { font-size: 17px; white-space: nowrap; }
+        header h1 span { color: #e94560; }
+        .ip-group { display: flex; gap: 6px; flex: 1; min-width: 0; }
+        .ip-group input {
+            flex: 1;
+            background: #0f0f2a;
+            border: 1px solid #2a2a4a;
+            color: #d0d0e8;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 0;
+        }
+        .ip-group input:focus { outline: none; border-color: #e94560; }
+        .btn-connect {
+            background: #e94560;
+            border: none;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .btn-connect:hover { background: #c73652; }
+        .status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #444;
+            flex-shrink: 0;
+            transition: background 0.4s;
+        }
+        .status-dot.online  { background: #4caf50; }
+        .status-dot.offline { background: #e94560; }
+
+        /* ── Layout ─────────────────────────────────────────── */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ────────────────────────────────────────── */
+        .sidebar {
+            background: #1a1a2e;
+            width: 190px;
+            flex-shrink: 0;
+            padding: 10px 10px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+            border-right: 1px solid #2a2a4a;
+        }
+        .section-label {
+            font-size: 10px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #666;
+            margin-top: 10px;
+            margin-bottom: 2px;
+            padding-left: 4px;
+        }
+        .sb-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #b0b0c8;
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12.5px;
+            text-align: left;
+            width: 100%;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sb-btn:hover  { background: #252545; color: #e0e0f4; }
+        .sb-btn.active { background: #e94560; color: #fff; border-color: #ff6b80; }
+
+        /* ── Form widgets ───────────────────────────────────── */
+        .field { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+        .field label { font-size: 11px; color: #888; }
+        .field input[type=color] {
+            width: 100%; height: 32px;
+            padding: 2px 4px;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            background: #0f0f2a;
+            cursor: pointer;
+        }
+        .field input[type=range] { width: 100%; accent-color: #e94560; cursor: pointer; }
+        .field select, .field textarea, .field input[type=number] {
+            background: #0f0f2a;
+            border: 1px solid #2a2a4a;
+            color: #d0d0e8;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            width: 100%;
+        }
+        .field textarea { resize: vertical; }
+        .field select:focus,
+        .field textarea:focus,
+        .field input[type=number]:focus { outline: none; border-color: #e94560; }
+        .range-row { display: flex; align-items: center; gap: 6px; }
+        .range-row input[type=range] { flex: 1; }
+        .range-val { font-size: 11px; color: #888; min-width: 26px; text-align: right; }
+
+        /* action buttons inside sidebar */
+        .action-btn {
+            background: #252545;
+            border: 1px solid #2a2a4a;
+            color: #d0d0e8;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 100%;
+            text-align: left;
+            margin-top: 2px;
+            transition: background 0.15s;
+        }
+        .action-btn:hover { background: #353565; }
+        .action-btn.danger:hover { background: #5a1a2a; }
+
+        /* ── Canvas area ────────────────────────────────────── */
+        .canvas-area {
+            flex: 1;
+            display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
+            background: #12121f;
+            overflow: hidden;
         }
-        #controls {
-            margin-bottom: 10px;
-        }
-        canvas {
-            border: 1px solid black;
-            margin-top: 10px;
-            transform-origin: 0 0;
-        }
-        #canvasContainer {
+        #canvasWrap {
             position: relative;
-            width: 320px;
-            height: 320px;
+            line-height: 0;
+        }
+        canvas#c {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border: 2px solid #2a2a4a;
+            border-radius: 4px;
+            background: #000;
+            touch-action: none;
         }
         video {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             object-fit: cover;
             display: none;
         }
+
+        /* ── WiFi config panel ──────────────────────────────── */
+        #wifi-panel {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            padding: 16px;
+            width: 260px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #wifi-panel h3 { font-size: 14px; color: #e94560; }
+        #wifi-panel input {
+            background: #0f0f2a;
+            border: 1px solid #2a2a4a;
+            color: #d0d0e8;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 100%;
+        }
+        #wifi-panel input:focus { outline: none; border-color: #e94560; }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <input id="ip" type="text" placeholder="192.168.178.___">
-        <details>
-            <summary>Draw, Upload and Share</summary>
-            <button onclick="changeMode('draw')">Draw</button>
-            <button onclick="changeMode('upload')">Upload Image</button>
-            <button onclick="changeMode('share')">Share Screen</button>
-            <input type="file" id="upload" accept="image/*" onchange="handleImage(event)" style="display:none;">
-        </details>
 
-        <details>
-            <summary>Clocks</summary>
-            <button onclick="setClockType('digital')">Digital</button>
-            <button onclick="setClockType('abstract')">Abstrakt</button>
-            <button onclick="setClockType('binary')">Binär</button>
-            <button onclick="setClockType('bar')">Balken</button>
-            <button onclick="setClockType('segment')">Segment</button>
-        </details>
-
-        <details>
-            <summary>Colors</summary>
-            <input type="color" id="color" value="#fff">
-        </details>
-
-        <details>
-            <summary>Tools</summary>
-            <button onclick="setTool('pen')">Pen</button>
-            <button onclick="setTool('eraser')">Eraser</button>
-            <button onclick="action('invert')">Invert</button>
-            <button onclick="action('clear')">Clear</button>
-            <button onclick="action('save')">Save</button>
-        </details>
+<header>
+    <h1><span>Screen</span>Share2040</h1>
+    <div class="ip-group">
+        <input id="ip" type="text" placeholder="Pico IP  e.g. 192.168.1.50">
+        <button class="btn-connect" onclick="testConnection()">Connect</button>
     </div>
-    <div id="canvasContainer">
-        <video autoplay></video>
-        <canvas id="c" width="64" height="64" style="transform: scale(5); background-color: black;"></canvas>
+    <div class="status-dot" id="statusDot" title="Connection status"></div>
+</header>
+
+<div class="layout">
+
+    <!-- ── Sidebar ───────────────────────────────────── -->
+    <div class="sidebar">
+
+        <div class="section-label">Mode</div>
+        <button id="mode-draw"   class="sb-btn active" onclick="changeMode('draw')">✏️  Draw</button>
+        <button id="mode-upload" class="sb-btn"        onclick="changeMode('upload')">📁  Upload Image</button>
+        <button id="mode-share"  class="sb-btn"        onclick="changeMode('share')">🖥️  Screen Share</button>
+        <button id="mode-text"   class="sb-btn"        onclick="changeMode('text')">💬  Text</button>
+        <button id="mode-clock"  class="sb-btn"        onclick="changeMode('clock')">🕐  Clock</button>
+        <button id="mode-wifi"   class="sb-btn"        onclick="changeMode('wifi')">📡  WiFi Config</button>
+
+        <!-- Draw tools -->
+        <div id="panel-draw">
+            <div class="section-label">Tools</div>
+            <button id="tool-pen"    class="sb-btn active" onclick="setTool('pen')">🖊️  Pen</button>
+            <button id="tool-eraser" class="sb-btn"        onclick="setTool('eraser')">🧹  Eraser</button>
+            <button id="tool-fill"   class="sb-btn"        onclick="setTool('fill')">🪣  Fill</button>
+            <button id="tool-line"   class="sb-btn"        onclick="setTool('line')">📏  Line</button>
+            <button id="tool-rect"   class="sb-btn"        onclick="setTool('rect')">⬜  Rectangle</button>
+
+            <div class="section-label">Color</div>
+            <div class="field">
+                <input type="color" id="penColor" value="#ffffff">
+            </div>
+
+            <div class="section-label">Actions</div>
+            <button class="action-btn" onclick="undo()">↩️  Undo</button>
+            <button class="action-btn" onclick="action('invert')">🔄  Invert</button>
+            <button class="action-btn danger" onclick="action('clear')">🗑️  Clear</button>
+            <button class="action-btn" onclick="action('save')">💾  Save PNG</button>
+        </div>
+
+        <!-- Text tools -->
+        <div id="panel-text" style="display:none">
+            <div class="section-label">Text</div>
+            <div class="field">
+                <label>Message</label>
+                <textarea id="textInput" rows="3" placeholder="Enter text…"></textarea>
+            </div>
+            <div class="field">
+                <label>X <span class="range-val" id="textXVal">0</span></label>
+                <input type="range" id="textX" min="0" max="55" value="0"
+                       oninput="document.getElementById('textXVal').textContent=this.value">
+            </div>
+            <div class="field">
+                <label>Y <span class="range-val" id="textYVal">0</span></label>
+                <input type="range" id="textY" min="0" max="55" value="0"
+                       oninput="document.getElementById('textYVal').textContent=this.value">
+            </div>
+            <div class="field">
+                <label>Color</label>
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+            <div class="field">
+                <label>Size</label>
+                <select id="textSize">
+                    <option value="large">Large (8 px)</option>
+                    <option value="small">Small (5 px)</option>
+                </select>
+            </div>
+            <button class="action-btn" style="margin-top:6px;background:#e94560;color:#fff"
+                    onclick="sendText(false)">▶  Send</button>
+            <button class="action-btn" onclick="sendText(true)">🗑️ + ▶  Clear &amp; Send</button>
+        </div>
+
+        <!-- Clock tools -->
+        <div id="panel-clock" style="display:none">
+            <div class="section-label">Clock Style</div>
+            <button id="clock-minimal" class="sb-btn active" onclick="setClockType('minimal',this)">⚡  Analog</button>
+            <button id="clock-digital" class="sb-btn"        onclick="setClockType('digital',this)">🔢  Digital</button>
+            <button id="clock-abstract"class="sb-btn"        onclick="setClockType('abstract',this)">🎯  Abstract</button>
+            <button id="clock-binary"  class="sb-btn"        onclick="setClockType('binary',this)">🔵  Binary</button>
+            <button id="clock-bar"     class="sb-btn"        onclick="setClockType('bar',this)">📊  Bar</button>
+            <button id="clock-segment" class="sb-btn"        onclick="setClockType('segment',this)">🔴  Segment</button>
+            <button id="clock-dot"     class="sb-btn"        onclick="setClockType('dot',this)">⚪  Dot</button>
+        </div>
+
+        <!-- WiFi config -->
+        <div id="panel-wifi" style="display:none">
+            <div class="section-label">WiFi Credentials</div>
+            <div class="field">
+                <label>SSID</label>
+                <input type="text" id="wifiSsid" placeholder="Network name">
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="wifiPass" placeholder="Password">
+            </div>
+            <button class="action-btn" style="margin-top:6px;background:#e94560;color:#fff"
+                    onclick="saveWifi()">💾  Save &amp; Reboot</button>
+        </div>
+
+        <!-- Brightness (always visible) -->
+        <div class="section-label">Brightness</div>
+        <div class="field">
+            <div class="range-row">
+                <input type="range" id="brightness" min="0" max="255" value="128"
+                       oninput="updateBrightness(this.value)">
+                <span class="range-val" id="brightnessVal">128</span>
+            </div>
+        </div>
+
+    </div><!-- /sidebar -->
+
+    <!-- ── Canvas area ───────────────────────────────── -->
+    <div class="canvas-area">
+        <div id="canvasWrap">
+            <video autoplay></video>
+            <canvas id="c" width="64" height="64"></canvas>
+        </div>
     </div>
-    <script src="app.js"></script>
+
+</div><!-- /layout -->
+
+<input type="file" id="uploadInput" accept="image/*" style="display:none">
+<script src="app.js"></script>
 </body>
 </html>
